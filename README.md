@@ -28,3 +28,18 @@ The SGM converts Eagle files to a stack of embroidery patterns. The user uses an
 Step 4: Program
 The user uses the SGM interface to program the glove. She selects an Action, e.g., play music, and demonstrates the associated gesture using the glove itself. The SGM generates the code and uploads it to the smart glove controller automatically.
 
+
+
+**VERSIONS and BRANCHES**
+
+Version 0 (by David)
+SGM - NOT ON GITHUB
+
+Version 1 (by David)
+Branch SmartGloveMaker-master - uses the Maze | Lee Algorithm to rote wires in the glove.
+
+Version 2 (by David)
+Branch SmartGloveMaker-newDesignSection - the user can click to link a button to a pin on the LilyPad. Then the app prepares files for Eagle to do auto routing: 
+1. outline.scr
+2. schematic.scr
+3. board.scr
