@@ -1,7 +1,8 @@
 Instructions for Mac:
 Make sure you have node.js
 Make sure you have npm
-Download the project from branch UI: This will contain the folders: Backend and Frontend.
+Download the project from branch master or newDesignSection. This will contain the folders: Backend and Frontend.
+
 In the Terminal 
   cd <path>/Frontend
   npm install
@@ -10,6 +11,8 @@ In the Terminal
   npm install
   npm start
   
-This was tested on macOS Mojave Version 10.14.2 with npm version 6.4.1 and v10.15.3
+This was tested on macOS Mojave Version 10.14.2 with npm version 6.4.1 and node version v10.15.3
+
+Once you installed the app as specified above, you can launch it by clicking on sgm.command
 
   
