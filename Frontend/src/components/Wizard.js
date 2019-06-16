@@ -67,6 +67,16 @@ export class Wizard extends React.Component{
 						</div>
 						 
 					); 
+			case 5: return (
+						<div  className="row h-85">
+							<div className="container">
+								<div className="row h-100">
+									<CustomOutline status="active"  wizard={this}/>
+								</div>
+							</div>
+						</div>
+							
+					);
 			default:
 		}
 	}
@@ -78,28 +88,28 @@ export class Wizard extends React.Component{
 		let design = {status: "", src: require('../img/gesture.svg')}; 
 		let directions = {status: "", src: require('../img/needle.svg')};
 		let gloveTesting = {status: "", src: require('../img/serial.svg')};
+		let customOutline = {status: "", src: require('../img/needle.svg')};
 		let progress = {width: "0%"}; 
 
 		switch(this.state.step){
 			case 1: gestures.status = "active";
 					gestures.src = require('../img/homeActive.svg'); 
 					break;
-			case 2: progress.width = "33.333333333%";
+			case 2: progress.width = "25%";
 					gestures.status = "visited";
 					gestures.src = require('../img/homeActive.svg');
 					design.status = "active";
 					design.src = require('../img/gestureActive.svg');
 					break; 
-			case 3: progress.width = "66.6666666666666%";
+			case 3: progress.width = "50%";
 					gestures.status = "visited";
 					gestures.src = require('../img/homeActive.svg');
 					design.status = "visited";
 					design.src = require('../img/gestureActive.svg');
-					 
 					directions.status = "active";
 					directions.src = require('../img/needleActive.svg'); 
 					break;
-			case 4: progress.width = "100%";
+			case 4: progress.width = "75%";
 					gestures.status = "visited";
 					gestures.src = require('../img/homeActive.svg');
 					design.status = "visited";
@@ -109,7 +119,18 @@ export class Wizard extends React.Component{
 					gloveTesting.status = "active";
 					gloveTesting.src = require('../img/serialActive.svg'); 
 					break;
-
+			case 5: progress.width = "100%";
+					gestures.status = "visited";
+					gestures.src = require('../img/homeActive.svg');
+					design.status = "visited";
+					design.src = require('../img/gestureActive.svg'); 
+					directions.status = "visited";
+					directions.src = require('../img/needleActive.svg');
+					gloveTesting.status = "visited";
+					gloveTesting.src = require('../img/serialActive.svg');
+					customOutline.status = "active";
+					customOutline.src = require('../img/needleActive.svg');
+					break;
 			default:
 		} 
 
@@ -154,6 +175,12 @@ export class Wizard extends React.Component{
 	          		   					</div>
 	          		   					<div>PROGRAM GLOVE</div>
 	          		   				</div>
+									<div onClick={() => this.handleStepClick(5)} className={customOutline.status+ " col stepBadge hidden-xs-down" }>
+	          		   					<div>
+	          		   					 	<img  alt="Custom Outline" src={customOutline.src}/> 
+	          		   					</div>
+	          		   					<div>CUSTOM OUTLINE</div>
+	          		   				</div>	 
 	          		   			</div>
 	          		   		</div>
 	          		   		<div className="col-md-1 col-lg-2"> 
