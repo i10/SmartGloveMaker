@@ -1,6 +1,5 @@
 import React from 'react'; 
 
-
 import '../css/routingView.css';
 
 // https://github.com/gfwilliams/svgtoeagle
@@ -75,30 +74,89 @@ export class CustomOutline extends React.Component{
             convCoords: '',
             svg2eagle: '',
           }; 
-        this.handleBackClick = this.handleBackClick.bind(this);
+
         //this.handleNextClick = this.handleNextClick.bind(this);
 
+        // top menu interaction
+        this.handleBackClick = this.handleBackClick.bind(this);
         this.handleStepClick = this.handleStepClick.bind(this); 
-        this.handleImportClick = this.handleImportClick.bind(this); 
 
-        this.handlePinName = this.handlePinName.bind(this);
+        // buttons and pins click
         this.handleButtonName = this.handleButtonName.bind(this);
-
+        this.handlePinName = this.handlePinName.bind(this);
         this.handleDeleteButton = this.handleDeleteButton.bind(this);
-        this.handleConvertCoordsButton = this.handleConvertCoordsButton.bind(this);
 
         // svg file upload
         this.handleOpenExplorerOnEnter = this.handleOpenExplorerOnEnter.bind(this);
         this.handleOpenExplorerOnClick = this.handleOpenExplorerOnClick.bind(this);
         this.handleOnLoadFile = this.handleOnLoadFile.bind(this); 
-
-        this.handleSVGClick = this.handleSVGClick.bind(this);
-
-        this.handleConvertClick = this.handleConvertClick.bind(this);
-        this.handleDownloadConvertedClick = this.handleDownloadConvertedClick.bind(this);
-
         this.escFunction = this.escFunction.bind(this);
+
+        // convert to eagle
+        this.handleConvertClick = this.handleConvertClick.bind(this);
+        this.handleConvertCoordsButton = this.handleConvertCoordsButton.bind(this);
+        this.handleDownloadConvertedClick = this.handleDownloadConvertedClick.bind(this);
     }
+
+    // on document load
+    componentDidMount() {
+
+        // pass react this to window for vanilla javascript to access it
+        window.react_this = this;
+        
+        // init SVG point
+        this.setState({pt: this.refs.mainSVG.createSVGPoint()});
+
+        // attach ESC handler
+        document.addEventListener("keydown", this.escFunction, false);
+    }
+
+    // on document unload
+    componentWillUnmount() {
+        // unattach ESC handler
+        document.removeEventListener("keydown", this.escFunction, false);
+    }
+
+    // navigation
+    navPrev(){ 
+        return (
+            <a className="navButton back " onClick={this.handleBackClick} >
+                    <img  alt="Step Back" src={require('../img/arrow.svg')}/>
+            </a>
+        );
+    } 
+    /*
+    navNext(){  
+        return (
+          <span>
+            <span ref="popOver" className={(this.state.modalOpen===false)? "popOver hidden": "popOver shake"} >
+              <p>{this.state.warning}</p>
+              <span className="pointer"></span>
+            </span>  
+            <a ref="nextBtn" className={"navButton next"} onClick={this.handleNextClick} >
+                <img  alt="Step Further" src={require('../img/arrowNext.svg')}/>
+            </a>   
+          </span> 
+          );
+      }
+    */
+
+    // state helper functions
+    handleUpdate(objects) {
+        this.setState({objects});
+    }
+
+	handleStepClick(step) {  
+		this.setState({ step:  step}); 
+    } 
+
+    handlePinName(pin) { 
+        this.setState({pinName:pin})
+    }
+    
+    handleButtonName(pin) { 
+        this.setState({btnName:pin})
+    } 
 
     /* HELPER: map coordinates in{min,max} => out{min,max} */
     scale = (num, in_min, in_max, out_min, out_max) => {
@@ -106,6 +164,25 @@ export class CustomOutline extends React.Component{
             num, in_min, in_max, out_min, out_max
         ]);*/
         return (num - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    }
+
+    // https://stackoverflow.com/a/1179377/665159
+    strcmp_filter( str1, str2 )
+    {
+        return this.strcmp( str1, str2 ) == 0;
+    }
+    strcmp ( str1, str2 ) {
+        // http://kevin.vanzonneveld.net
+        // +   original by: Waldo Malqui Silva
+        // +      input by: Steve Hilder
+        // +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+        // +    revised by: gorthaur
+        // *     example 1: strcmp( 'waldo', 'owald' );
+        // *     returns 1: 1
+        // *     example 2: strcmp( 'owald', 'waldo' );
+        // *     returns 2: -1
+    
+        return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
     }
 
     /* BACK BUTTON */
@@ -118,14 +195,18 @@ export class CustomOutline extends React.Component{
         } 
     } 
 
-    handlePinName(pin) { 
-        this.setState({pinName:pin})
+    /* CONVERT CLICK - input & draw svg, convert to scr */
+    handleConvertClick() {
+        this.handleDeleteButton(-1);
+        convert();
     }
-    
-    handleButtonName(pin) { 
-        this.setState({btnName:pin})
-    } 
 
+    /* DOWNLOAD CLICK - download the entire script */
+    handleDownloadConvertedClick() {
+        download_script();
+    }
+
+    /* DELETE CLICK - delete connection */
     handleDeleteButton(index) {
         if ( index === -1 ) // delete all
         {
@@ -133,11 +214,15 @@ export class CustomOutline extends React.Component{
                 buttons: [],
                 pins: []
             });
-        }
-        if ( this.state.toggleNextState === enums.svgClickStates.pin ) {
-            this.deleteLastButton();
             return;
         }
+        
+        /*
+        if ( this.state.toggleNextState === enums.svgClickStates.button ) {
+            this.deleteLastPin();
+            return;
+        }*/
+        
         
         if ( index >= this.state.buttons.length || index < 0)
         {
@@ -152,6 +237,28 @@ export class CustomOutline extends React.Component{
         this.setState({
             //pointIndex: this.state.pointIndex - 1,
             buttons: newBtns,
+            pins: newPins
+        });
+    }
+    deleteLastButton() {
+        let newBtns = this.state.buttons;
+        newBtns.pop();
+        //let newPointIndex = this.state.pointIndex;
+        //if ( newPointIndex <= 1 ) newPointIndex = 1;
+        this.setState({
+            toggleNextState: enums.svgClickStates.button,
+            //pointIndex: newPointIndex - 1,
+            buttons: newBtns
+        });
+    }
+    deleteLastPin() {
+        let newPins = this.state.pins;
+        newPins.pop();
+        let newPointIndex = this.state.pointIndex;
+        if ( newPointIndex <= 1 ) newPointIndex = 1;
+        this.setState({
+            toggleNextState: enums.svgClickStates.pin,
+            pointIndex: newPointIndex - 1,
             pins: newPins
         });
     }
@@ -272,6 +379,7 @@ export class CustomOutline extends React.Component{
         download_script();
     }
 
+    // handle mouse move
     _onMouseMove(e) {
         /*let svgHeight = this.mainSVG.clientHeight;
         let svgWidth = this.mainSVG.clientWidth;
@@ -312,7 +420,7 @@ export class CustomOutline extends React.Component{
         
     }
 
-    navPrev(){ 
+    // prepare EAGLE SCRIPT for adding controller pins to SCHEMATIC view
         return (
             <a className="navButton back " onClick={this.handleBackClick} >
                     <img  alt="Step Back" src={require('../img/arrow.svg')}/>
@@ -358,6 +466,7 @@ export class CustomOutline extends React.Component{
         return net + addBtn + addPin;
     }
 
+    // prepare EAGLE SCRIPT moving of button on BOARD view
     prepareMoveButtonPinString(index, btnX, btnY, pinX, pinY, btnName, pinName)
     {
         const moveCommand = "MOVE";
@@ -368,10 +477,11 @@ export class CustomOutline extends React.Component{
         return moveBtn + movePin;
     }
 
+    // convert all coordinates
     handleConvertCoordsButton() {
         const NL = "\n";
-        const editSchematic = "EDIT .SCH;" + "\n";
-        const editBoard = "EDIT .BRD;" + "\n";
+        const editSchematic = "EDIT .SCH;" + "\n"; // switch to schematic view
+        const editBoard = "EDIT .BRD;" + "\n"; // switch to board view
         const changeLayerTop = "CHANGE LAYER 1;" + "\n";
         const gridMM = "GRID MM;" + "\n";
         const setWireWidth = "SET NET_WIRE_WIDTH 0.1;" + "\n";
@@ -440,57 +550,6 @@ export class CustomOutline extends React.Component{
             outputStr += editBoard + changeLayerTop + gridMM + moveStr;
         
         this.setState({convCoords: outputStr});
-    }
-
-	handleStepClick(step) {  
-		this.setState({ step:  step}); 
-    } 
-    
-    handleImportClick() {  
-		 alert('hello world');
-    } 
-    
-    handleOpenExplorerOnClick(event){ 
-        this.refs.eagleSVG.focus();  
-        this.refs.eagleSVG.click(); 
-    }
-
-    handleOpenExplorerOnEnter(event){
-        if ( event.keyCode === 13 || event.keyCode === 32 ) {  
-            this.refs.eagleSVG.focus();  
-            this.refs.eagleSVG.click();
-        } 
-    }
-
-    handleOnLoadFile(){    
-        let component = this;
-        let files = this.refs.eagleSVG.files;   
-        
-        let  reader= new FileReader();
-        reader.onload = function(e) {
-            let allText = e.target.result; 
-            
-            // PARSE XML
-            let XMLParser = require('react-xml-parser');
-            let xml = new XMLParser().parseFromString(allText);    // Assume xmlText contains the example XML
-            /*let svgTag = xml.getElementsByTagName('svg')[0];
-            
-            let signals = xml.getElementsByTagName('signal');
-            let wires = []; 
-            for(let signal in signals){  
-            Object.keys(signals[signal].children).reduce(function(r, e) {
-                if (signals[signal].children[e].name === "wire")  wires.push(signals[signal].children[e].attributes)
-            }, {}) 
-            }  
-            component.props.designer.setState({wires:wires});
-            */
-            // SEND SVG TO RENDERING = copy to html tag
-            component.refs.mainSVG.innerHTML = allText;
-            //this.mainSVG.innerHTML = allText;
-            component.setState({isSVGLoaded:true});
-            console.log("loaded.");
-        };
-        reader.readAsText(files[0]);
     }
 
     render() {  
