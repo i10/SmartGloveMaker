@@ -22,7 +22,6 @@ const enums = {
         "A3",
         "A4",
         "A5",
-        "1",
         "2",
         "3",
         "4",
@@ -33,7 +32,8 @@ const enums = {
         "9",
         "10",
         "11",
-        "12"
+        "12",
+        "13",
     ],
     svgClickStates: {
         none: "NONE",
@@ -41,6 +41,8 @@ const enums = {
         pin: "PIN"
     }
 }
+
+var transform;
 
 export class CustomOutline extends React.Component{
 
@@ -67,16 +69,18 @@ export class CustomOutline extends React.Component{
             buttons: [],
             pins: [],
             objects: [],
-            toggleNextState: enums.svgClickStates.button,
+            toggleNextState: enums.svgClickStates.pin,
 
             pinName: null,
             btnName: null,
             convCoords: '',
             svg2eagle: '',
+            previousMousePos: [],
+            previousCursor: {x: 0, y:0}
           }; 
 
         //this.handleNextClick = this.handleNextClick.bind(this);
-
+        
         // top menu interaction
         this.handleBackClick = this.handleBackClick.bind(this);
         this.handleStepClick = this.handleStepClick.bind(this); 
@@ -85,11 +89,11 @@ export class CustomOutline extends React.Component{
         this.handleButtonName = this.handleButtonName.bind(this);
         this.handlePinName = this.handlePinName.bind(this);
         this.handleDeleteButton = this.handleDeleteButton.bind(this);
-
-        // svg file upload
-        this.handleOpenExplorerOnEnter = this.handleOpenExplorerOnEnter.bind(this);
-        this.handleOpenExplorerOnClick = this.handleOpenExplorerOnClick.bind(this);
-        this.handleOnLoadFile = this.handleOnLoadFile.bind(this); 
+        
+        // SVG interaction 
+        this.handlePinOrButtonPlacement = this.handlePinOrButtonPlacement.bind(this);
+        this.handleSVGDown = this.handleSVGDown.bind(this);
+        this.handleSVGUp = this.handleSVGUp.bind(this);
         this.escFunction = this.escFunction.bind(this);
 
         // convert to eagle
@@ -268,51 +272,113 @@ export class CustomOutline extends React.Component{
     escFunction(event) {
         if(event.keyCode === 27) {
             // abort drawing if active
-            if (this.state.toggleNextState === enums.svgClickStates.pin) {
-                this.deleteLastButton();
+            if (this.state.toggleNextState === enums.svgClickStates.button) {
+                this.deleteLastPin();
             }
         }
     }
-    deleteLastButton() {
-        let newBtns = this.state.buttons;
-        newBtns.pop();
-        this.setState({
-            toggleNextState: enums.svgClickStates.button,
-            pointIndex: this.state.pointIndex - 1,
-            buttons: newBtns
-        });
-    }
-    componentDidMount() {
-        window.react_this = this;
-        this.setState({pt: this.refs.mainSVG.createSVGPoint()});
-        document.addEventListener("keydown", this.escFunction, false);
-    }
-    componentWillUnmount() {
-        document.removeEventListener("keydown", this.escFunction, false);
+
+    // ON CLICK on SVG - handle dragging, selection and clicking
+    handleSVGDown(evt) {
+        // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+
+        var selectedElement = false;
+        var currentMousePos = this.getMousePosition(evt);
+        this.setState({"previousMousePos": this.getMousePosition(evt)});
+        
+        // clicking on canvas or one of the pin buttons
+        if (
+            this.state.toggleNextState == enums.svgClickStates.button ||
+            evt.target.classList.contains('lily-pin')
+        ) 
+        {
+            // clicked pin, get pin ID
+            var pinID = (evt.target.getAttribute('data-pin-id') === null ) ? -1 : evt.target.getAttribute('data-pin-id');
+            if ( pinID != -1 )
+            {
+                //this.state.pointIndex = +pinID;
+                this.setState({pointIndex: +pinID});
+                console.log([evt.target.getAttribute('data-pin'), pinID]);
+            }
+            else
+            {
+                // placing button, retain point ID from pin
+                pinID = this.state.pointIndex;
+            }
+            // handle placing pin or button
+            this.handlePinOrButtonPlacement(pinID, evt.target);
+        } // single draggable element
+        else if (evt.target.classList.contains('draggable')) 
+        {
+            selectedElement = evt.target;
+            this.handleDragging(selectedElement, currentMousePos);
+        } 
+        // draggable group - controller image + pins
+        else if (evt.target.parentNode.classList.contains('draggable-group')) 
+        {
+            selectedElement = evt.target.parentNode;
+            this.handleDragging(selectedElement, currentMousePos);
+        }
+        this.setState({"selectedElement": selectedElement});
     }
 
-    handleUpdate(objects) {
-        this.setState({objects});
+    // handle dragging - generate initial transform to apply to any svg object
+    handleDragging(selectedElement, offset)
+    {
+        // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+        selectedElement.classList.toggle("dragging");
+
+        // Make sure the first transform on the element is a translate transform
+        var transforms = selectedElement.transform.baseVal;
+
+        if (transforms.length === 0 || transforms.getItem(0).type !== SVGTransform.SVG_TRANSFORM_TRANSLATE) {
+            // Create an transform that translates by (0, 0)
+            var translate = this.refs.mainSVG.createSVGTransform();
+            translate.setTranslate(0, 0);
+            selectedElement.transform.baseVal.insertItemBefore(translate, 0);
+        }
+
+        // Get initial translation
+        transform = transforms.getItem(0);
+        offset.x -= transform.matrix.e;
+        offset.y -= transform.matrix.f;
+
+        this.setState({
+            "offset": offset
+        });
+    }
+
+    // let go of mouse - reset dragging 
+    handleSVGUp(e) {
+        // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+        if ( this.state.selectedElement )
+        {
+            this.state.selectedElement.classList.toggle("dragging");
+        }
+        this.setState({
+            "selectedElement": false,
+            "previousMousePos": {x: 0, y: 0}
+        });
     }
 
     /* DRAWING CLICK - place button/pin */
-    handleSVGClick() {
+    handlePinOrButtonPlacement(pinID, target) {
 
-        let pointLabel = this.state.pointIndex + "";
-        if ( this.state.pointIndex < enums.buttonsChosen.length )
+        let pointLabel = pinID + "";
+        if ( pinID < enums.buttonsChosen.length )
         {
-            pointLabel = enums.buttonsChosen[this.state.pointIndex];
+            pointLabel = enums.buttonsChosen[pinID];
         } 
         else 
         {
-            pointLabel = "BTN" + (this.state.pointIndex - enums.buttonsChosen.length);
+            pointLabel = "BTN" + (pinID - enums.buttonsChosen.length);
         }
-        /*
-        console.log([
+        
+        /*console.log([
             'CLICKED',
-            [this.state.pointIndex + "/" + enums.buttonsChosen.length, this.state.toggleNextState]
-        ]);
-        */
+            [pinID + "/" + enums.buttonsChosen.length, this.state.toggleNextState]
+        ]);*/
+        
 
         switch (this.state.toggleNextState) {
             // JUST ADD POINTS
@@ -322,6 +388,7 @@ export class CustomOutline extends React.Component{
                 //this.setState({toggleNextState: enums.svgClickStates.button});
                 let newPoints = this.state.points.concat({
                     label: pointLabel, 
+                    id: pinID,
                     x:this.state.dimensionX, 
                     y:this.state.dimensionY,
                     vectorX:this.state.absoluteX,
@@ -330,53 +397,91 @@ export class CustomOutline extends React.Component{
                 
                 this.setState({
                     points: newPoints,
-                    pointIndex: this.state.pointIndex + 1
+                    pointIndex: pinID + 1
                 });
                 break;
             // ADD A BUTTON
             case enums.svgClickStates.button:
                 let newButtons = this.state.buttons.concat({
                     label: pointLabel, 
+                    id: pinID,
                     x:this.state.dimensionX, 
                     y:this.state.dimensionY,
                     vectorX:this.state.absoluteX,
                     vectorY:this.state.absoluteY
                 });
+
+                console.log(["ADDED BTN", {
+                    label: pointLabel, 
+                    id: pinID,
+                    x:this.state.dimensionX, 
+                    y:this.state.dimensionY,
+                    vectorX:this.state.absoluteX,
+                    vectorY:this.state.absoluteY
+                }]);
                 
                 this.setState({
                     buttons: newButtons,
-                    //pointIndex: this.state.pointIndex + 1
+                    pointIndex: pinID + 1
                 });
                 this.setState({toggleNextState: enums.svgClickStates.pin});
+                //this.handleConvertCoordsButton();
                 break;
             
             // ADD A CONTROLLER PIN
             case enums.svgClickStates.pin:
+
+                // get target bounding box
+                var bbox = target.getBBox(),
+                    middleX = bbox.x + (bbox.width / 2),
+                    middleY = bbox.y + (bbox.height / 2);
+
+                // add group translation to it
+                var t = this.refs.pinGroup.getAttribute('transform');
+                if ( t !== null )
+                {
+                    var parts  = /translate\(\s*([^\s,)]+)[ ,]([^\s,)]+)/.exec(t);
+                    middleX += parseFloat(parts[1]);
+                    middleY += parseFloat(parts[2]);
+                }
+
+
+                // new pins
                 let newPins = this.state.pins.concat({
                     label: pointLabel, 
-                    x:this.state.dimensionX, 
-                    y:this.state.dimensionY,
+                    id: pinID,
+                    x:middleX, 
+                    y:middleY,
                     vectorX:this.state.absoluteX,
                     vectorY:this.state.absoluteY
                 });
+
+                console.log(["ADDED PIN", {
+                    label: pointLabel, 
+                    id: pinID,
+                    x:middleX, 
+                    y:middleY,
+                    vectorX:this.state.absoluteX,
+                    vectorY:this.state.absoluteY
+                }]);
                 
                 this.setState({
                     pins: newPins,
-                    pointIndex: this.state.pointIndex + 1
+                    //pointIndex: pinID + 1
                 });
                 this.setState({toggleNextState: enums.svgClickStates.button});
                 break;
-        }
-        
+        }   
     }
 
-    /* CONVERT CLICK - input & draw svg, convert to scr */
-    handleConvertClick() {
-        this.handleDeleteButton(-1);
-        convert();
-    }
-    handleDownloadConvertedClick() {
-        download_script();
+    // calculate between SVG coordinate space and mouse coords
+    getMousePosition(evt) {
+        var CTM = this.refs.mainSVG.getScreenCTM();
+        if (evt.touches) { evt = evt.touches[0]; }
+        return {
+            x: (evt.clientX - CTM.e) / CTM.a,
+            y: (evt.clientY - CTM.f) / CTM.d
+        };
     }
 
     // handle mouse move
@@ -388,11 +493,7 @@ export class CustomOutline extends React.Component{
         let y =(e.nativeEvent.offsetY - 0) * (patternPixelDimension.height - 0) / (svgWidth - 0) + 0;
         */
         //console.log(e.target);
-        if (e.target.tagName.toLowerCase() !== 'svg') 
-        { 
-            return;
-        }
-        e.preventDefault();
+
         var ptx = this.state.pt;
         ptx.x = e.clientX;
         ptx.y = e.clientY;
@@ -402,47 +503,95 @@ export class CustomOutline extends React.Component{
         
         // The cursor point, translated into svg coordinates
         var cursorpt =  ptx.matrixTransform(this.refs.mainSVG.getScreenCTM().inverse());
-        //console.log("(" + cursorpt.x + ", " + cursorpt.y + ")");
         let x = cursorpt.x;
         let y = cursorpt.y;
-        /*console.log([
-            x, y
-        ]);*/
+
+        // http://www.petercollingridge.co.uk/tutorials/svg/interactive/dragging/
+        if ( this.state.selectedElement ) 
+        {
+            // calculate dx/dy for currently selected element (controller)
+            var currentMousePos = this.getMousePosition(e);
+            var off = this.state.offset; // initMousePos - initial element position
+            var dx = currentMousePos.x - off.x;
+            var dy = currentMousePos.y - off.y;
+            transform.setTranslate(dx, dy);
+            
+            // calculate dx/dy from last frame
+            var previousMousePos = this.state.previousMousePos;
+            var pt_Derivative = {
+                x: currentMousePos.x - previousMousePos.x, 
+                y: currentMousePos.y - previousMousePos.y
+            };
+
+            //var currCursor = {x: x, y: y};
+            var previousCursor = this.state.previousCursor;
+            var px_Derivative = {
+                x: cursorpt.x - previousCursor.x,
+                y: cursorpt.y - previousCursor.y,
+            };
+            //this.setState({previousCursor: currCursor});
+            
+            let SVGBounds = this.refs.mainSVG.getBoundingClientRect();
+            //console.log(this.refs.mainSVG.width + " x " + this.refs.mainSVG.height);
+            let viewbox_parsed = this.refs.mainSVG.getAttribute("viewBox").split(" ").splice(-2, 2);
+            // SVG CANVAS WIDTH AND HEIGHT
+            viewbox_parsed = {
+                x: +viewbox_parsed[0], 
+                y: +viewbox_parsed[1]
+            };
+
+            console.log([
+                "dX: " + px_Derivative.x,
+                "dY: " + px_Derivative.y,
+
+
+                "DX: " + pt_Derivative.x,
+                "DY: " + pt_Derivative.y,
+            ]);
+
+            // apply dx/dy from last frame to all pins
+            var pins_c = this.state.pins;
+            for (let pinIndex = 0; pinIndex < pins_c.length; pinIndex++) {
+                // only apply to coords, don't overwrite the whole pin
+                var pin = pins_c[pinIndex];
+                pin.x += pt_Derivative.x;
+                pin.y += pt_Derivative.y;
+
+                pin.vectorX += this.scale(pt_Derivative.x, 0, viewbox_parsed.x, 0,  SVGBounds.width);
+                pin.vectorY += this.scale(pt_Derivative.y, 0, viewbox_parsed.y, 0, SVGBounds.height);
+
+                pins_c[pinIndex] = pin;
+            }
+            this.setState({
+                pins: pins_c,
+                previousMousePos: currentMousePos,
+                previousCursor: cursorpt
+            });
+
+            return;
+        }
+
+        // no selection, handle simple mouse move
+        if (
+            e.target.tagName.toLowerCase() !== 'svg' && 
+            !["g", "svg"].includes( e.target.parentNode.tagName.toLowerCase() ) ) 
+        { 
+            return;
+        }
+        e.preventDefault();
 
         // https://stackoverflow.com/a/42183459/665159
         this.setState({ 
             absoluteX: e.nativeEvent.offsetX, 
             absoluteY: e.nativeEvent.offsetY,
             
-            dimensionX: x,//this.scale(e.nativeEvent.offsetX, 420, 420, patternPixelDimension.width, patternPixelDimension.height),
-            dimensionY: y//this.scale(e.nativeEvent.offsetY, 420, 420, patternPixelDimension.width, patternPixelDimension.height)
+            dimensionX: x,
+            dimensionY: y
         });
         
     }
 
     // prepare EAGLE SCRIPT for adding controller pins to SCHEMATIC view
-        return (
-            <a className="navButton back " onClick={this.handleBackClick} >
-                    <img  alt="Step Back" src={require('../img/arrow.svg')}/>
-            </a>
-        );
-    } 
-    /*
-    navNext(){  
-        return (
-          <span>
-            <span ref="popOver" className={(this.state.modalOpen===false)? "popOver hidden": "popOver shake"} >
-              <p>{this.state.warning}</p>
-              <span className="pointer"></span>
-            </span>  
-            <a ref="nextBtn" className={"navButton next"} onClick={this.handleNextClick} >
-                <img  alt="Step Further" src={require('../img/arrowNext.svg')}/>
-            </a>   
-          </span> 
-          );
-      }
-    */
-
     prepareAddButtonPinString(index, btnX, btnY, pinX, pinY, btnName, pinName, btnRot = "MR0", pinRot = "R0") {
         /*
             NET (0 0) (20 0); 
@@ -501,16 +650,21 @@ export class CustomOutline extends React.Component{
         let SVGBounds = this.refs.mainSVG.getBoundingClientRect();
         //console.log(this.refs.mainSVG.width + " x " + this.refs.mainSVG.height);
         let viewbox_parsed = this.refs.mainSVG.getAttribute("viewBox").split(" ").splice(-2, 2);
+        // SVG CANVAS WIDTH AND HEIGHT
+        // take the patternPixelDimension to scale it to the same size as it was before
         viewbox_parsed = {
-            x: +viewbox_parsed[0], 
-            y: +viewbox_parsed[1]
+            x: +viewbox_parsed[0],//patternPixelDimension.width,
+            y: +viewbox_parsed[1]//patternPixelDimension.height
         };
         //console.log(viewbox_parsed);
-            for (let pinIndex = 0; pinIndex < this.state.pins.length; pinIndex++) {
-                const pin = this.state.pins[pinIndex];
-                const btn = this.state.buttons[pinIndex];
-                //console.log(pin);
-                //console.log(btn);
+        console.warn(this.state.pins);
+        var pins = this.state.pins;
+        var btns = this.state.buttons;
+        var len = this.state.pins.length;
+            for (let pinIndex = 0; pinIndex < len; pinIndex++) {
+                let pin = pins[pinIndex];
+                let btn = btns[pinIndex];
+
                 // divide by scale, map to inverse y range
                 /* 
                     SVG:
@@ -525,6 +679,12 @@ export class CustomOutline extends React.Component{
                     | 
                     ----> X
                 */
+
+                console.log([
+                    "analysing btn/pin pair: " + pin.id + " | " + btn.id,
+                    pin,
+                    btn
+                ]);
                 
                 addStr += this.prepareAddButtonPinString(
                     pinIndex, 
@@ -613,11 +773,237 @@ export class CustomOutline extends React.Component{
                                         <svg
                                                 ref="mainSVG"
                                                 className="marginAuto displayBlock mainSVG"
+                                                //onMouseMove={this._onMouseMove.bind(this)}
+                                                //onClick={this.handlePinOrButtonPlacement}
+                                                //onLoad={this.handleSVGLoaded}
                                                 onMouseMove={this._onMouseMove.bind(this)}
-                                                onClick={this.handleSVGClick}
+                                                onTouchMove={this._onMouseMove.bind(this)}
+
+                                                onMouseDown={this.handleSVGDown}
+                                                onTouchStart={this.handleSVGDown}
+
+                                                onMouseUp={this.handleSVGUp}
+                                                onMouseLeave={this.handleSVGUp}
+
+                                                onTouchCancel={this.handleSVGUp}
+                                                onTouchEnd={this.handleSVGUp}
                                                 id="mainSVG"
                                                 viewBox={`0 0 0 0`}
                                                 >
+{/*
+                                                    <circle 
+                                                        className="draggable" 
+                                                        fill="#007bff" 
+                                                        x="50" y="50" 
+                                                        r="5"  
+                                                        stroke="black" 
+                                                        strokeWidth="0.5" 
+                                                        />
+*/}
+
+                                                    <g width="100" height="100" className="draggable-group" ref="pinGroup">
+                                                        <image xlinkHref={require('../img/lilypad.svg')} width="100" height="100" />
+                                                        <circle 
+                                                            cx="7"
+                                                            cy="44"
+                                                            className="lily-pin"
+                                                            data-pin="GND"
+                                                            data-pin-id="0"
+                                                            >
+                                                            <title>PIN_GND</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="7"
+                                                            cy="56"
+                                                            className="lily-pin"
+                                                            data-pin="VOL"
+                                                            data-pin-id="1"
+                                                            >
+                                                            <title>PIN_VOL</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="50"
+                                                            cy="7"
+                                                            className="lily-pin"
+                                                            data-pin="RX"
+                                                            data-pin-id="2"
+                                                            >
+                                                            <title>PIN_RX</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="38"
+                                                            cy="9"
+                                                            className="lily-pin"
+                                                            data-pin="TX"
+                                                            data-pin-id="3"
+                                                            >
+                                                            <title>PIN_TX</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="27"
+                                                            cy="14"
+                                                            className="lily-pin"
+                                                            data-pin="2"
+                                                            data-pin-id="10"
+                                                            >
+                                                            <title>PIN_2</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="17"
+                                                            cy="22"
+                                                            className="lily-pin"
+                                                            data-pin="3"
+                                                            data-pin-id="11"
+                                                            >
+                                                            <title>PIN_3</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="11"
+                                                            cy="32"
+                                                            className="lily-pin"
+                                                            data-pin="4"
+                                                            data-pin-id="12"
+                                                            >
+                                                            <title>PIN_4</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="11"
+                                                            cy="68"
+                                                            className="lily-pin"
+                                                            data-pin="5"
+                                                            data-pin-id="13"
+                                                            >
+                                                            <title>PIN_5</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="17"
+                                                            cy="78"
+                                                            className="lily-pin"
+                                                            data-pin="6"
+                                                            data-pin-id="14"
+                                                            >
+                                                            <title>PIN_6</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="27"
+                                                            cy="86"
+                                                            className="lily-pin"
+                                                            data-pin="7"
+                                                            data-pin-id="15"
+                                                            >
+                                                            <title>PIN_7</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="38"
+                                                            cy="92"
+                                                            className="lily-pin"
+                                                            data-pin="8"
+                                                            data-pin-id="16"
+                                                            >
+                                                            <title>PIN_8</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="50"
+                                                            cy="93"
+                                                            className="lily-pin"
+                                                            data-pin="9"
+                                                            data-pin-id="17"
+                                                            >
+                                                            <title>PIN_9</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="62"
+                                                            cy="91"
+                                                            className="lily-pin"
+                                                            data-pin="10"
+                                                            data-pin-id="18"
+                                                            >
+                                                            <title>PIN_10</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="74"
+                                                            cy="86"
+                                                            className="lily-pin"
+                                                            data-pin="11"
+                                                            data-pin-id="19"
+                                                            >
+                                                            <title>PIN_11</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="83"
+                                                            cy="78"
+                                                            className="lily-pin"
+                                                            data-pin="12"
+                                                            data-pin-id="20"
+                                                            >
+                                                            <title>PIN_12</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="89"
+                                                            cy="68"
+                                                            className="lily-pin"
+                                                            data-pin="13"
+                                                            data-pin-id="21"
+                                                            >
+                                                            <title>PIN_13</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="93"
+                                                            cy="56"
+                                                            className="lily-pin"
+                                                            data-pin="A0"
+                                                            data-pin-id="4"
+                                                            >
+                                                            <title>PIN_A0</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="93"
+                                                            cy="44"
+                                                            className="lily-pin"
+                                                            data-pin="A1"
+                                                            data-pin-id="5"
+                                                            >
+                                                            <title>PIN_A1</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="90"
+                                                            cy="32"
+                                                            className="lily-pin"
+                                                            data-pin="A2"
+                                                            data-pin-id="6"
+                                                            >
+                                                            <title>PIN_A2</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="83"
+                                                            cy="22"
+                                                            className="lily-pin"
+                                                            data-pin="A3"
+                                                            data-pin-id="7"
+                                                            >
+                                                            <title>PIN_A3</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="74"
+                                                            cy="14"
+                                                            className="lily-pin"
+                                                            data-pin="A4"
+                                                            data-pin-id="8"
+                                                            >
+                                                            <title>PIN_A4</title>
+                                                        </circle>
+                                                        <circle 
+                                                            cx="62"
+                                                            cy="9"
+                                                            className="lily-pin"
+                                                            data-pin="A5"
+                                                            data-pin-id="9"
+                                                            >
+                                                            <title>PIN_A5</title>
+                                                        </circle>
+                                                    </g>
+                                                    
+
                                                 {/*
                                                     width="300"
                                                     height="10"
@@ -643,9 +1029,8 @@ export class CustomOutline extends React.Component{
                                                                     
                                                                     onClick={() => this.handleButtonMappointg(point)} 
                                                                     onMouseEnter={() => this.handlepointName(point)} 
-                                                                    onMouseLeave={() => this.handlepointName("")} 
-                                                                        
-        */}
+                                                                    onMouseLeave={() => this.handlepointName("")}           
+                                                 */}
                                                     {Object.keys(this.state.points).map(point => (
                                                         <React.Fragment key={`point${point}`}> 
                                                                 <circle id={`point_${point}`}
@@ -654,7 +1039,6 @@ export class CustomOutline extends React.Component{
                                                                         r="1"  
                                                                         stroke="black" 
                                                                         strokeWidth="0.5" 
-                                                                        
                                                                         fill="#FF004E"
                                                                         className="point"
                                                                 />  
@@ -664,18 +1048,18 @@ export class CustomOutline extends React.Component{
                                                     {/*  BUTTONS  */}
                                                     {Object.keys(this.state.buttons).map(point => (
                                                         <React.Fragment key={`point${point}`}> 
-                                                                <circle id={`button_${point}`}
+                                                                <circle id={`button_${this.state.buttons[point].id}`}
                                                                         cx={this.state.buttons[point].x} 
                                                                         cy={this.state.buttons[point].y} 
                                                                         r="2"  
                                                                         stroke="orange" 
                                                                         strokeWidth="0.5"
                                                                         fill="#FF9900"
-                                                                        className="point"
-                                                                        onMouseEnter={() => this.handleButtonName(point)} 
+                                                                        className="point static button"
+                                                                        onMouseEnter={() => this.handleButtonName(this.state.buttons[point].id)} 
                                                                         onMouseLeave={() => this.handleButtonName("")} 
                                                                 >
-                                                                    <title>[BTN] {enums.buttonsChosen[point]}</title>
+                                                                    <title>[BTN] {enums.buttonsChosen[this.state.buttons[point].id]}</title>
                                                                 </circle>
                                                         </React.Fragment>                          
                                                     ))}
@@ -683,24 +1067,24 @@ export class CustomOutline extends React.Component{
                                                     {/*  CONTROLLER PINS  */}
                                                     {Object.keys(this.state.pins).map(point => (
                                                         <React.Fragment key={`point${point}`}> 
-                                                                <circle id={`pin_${point}`}
+                                                                <circle id={`pin_${this.state.pins[point].id}`}
                                                                         cx={this.state.pins[point].x} 
                                                                         cy={this.state.pins[point].y} 
                                                                         r="2"  
                                                                         stroke="blue" 
                                                                         strokeWidth="0.5" 
                                                                         fill="#0060ff"
-                                                                        className="point"
-                                                                        onMouseEnter={() => this.handlePinName(point)} 
+                                                                        className="point pin"
+                                                                        onMouseEnter={() => this.handlePinName(this.state.pins[point].id)} 
                                                                         onMouseLeave={() => this.handlePinName("")} 
                                                                 >
-                                                                    <title>[PIN] {enums.buttonsChosen[point]}</title>
+                                                                    <title>[PIN] {enums.buttonsChosen[this.state.pins[point].id]}</title>
                                                                 </circle>
                                                         </React.Fragment>                          
                                                     ))}
 
-                                                    {/* FOR EACH PIN THERE IS A BUTTON - CONNECT WITH LINE */}
-                                                    {Object.keys(this.state.pins).map(mapping => ( 
+                                                    {/* FOR EACH BUTTON THERE IS A PIN - CONNECT WITH LINE */}
+                                                    {Object.keys(this.state.buttons).map(mapping => ( 
                                                         <React.Fragment key={`line${mapping}`}>
                                                         <line 
                                                             x1={this.state.buttons[mapping].x} 
@@ -713,14 +1097,15 @@ export class CustomOutline extends React.Component{
                                                             />
                                                         </React.Fragment>
                                                     ))}
+                                                     
 
-                                                    {/* CURRENTLY DRAWING - CONNECT LAST BUTTON WITH DASHED LINE TO MOUSE POSITION */}
-                                                    {( this.state.toggleNextState === enums.svgClickStates.pin ) ? 
+                                                    {/* CURRENTLY DRAWING - CONNECT LAST PIN WITH DASHED LINE TO MOUSE POSITION */}
+                                                    {( this.state.toggleNextState === enums.svgClickStates.button && this.state.pins.length > 0) ? 
                                                     
-                                                        <React.Fragment key={`line${this.state.buttons.length - 1}`}>
+                                                        <React.Fragment key={`line${this.state.pins.length}`}>
                                                             <line 
-                                                                x1={this.state.buttons[this.state.buttons.length - 1].x} 
-                                                                y1={this.state.buttons[this.state.buttons.length - 1].y} 
+                                                                x1={this.state.pins[this.state.pins.length-1].x} 
+                                                                y1={this.state.pins[this.state.pins.length-1].y} 
                                                                 x2={this.state.dimensionX}
                                                                 y2={this.state.dimensionY}
                                                                 stroke="gray" 
@@ -733,6 +1118,7 @@ export class CustomOutline extends React.Component{
                                                         : ""
                                                 
                                                     }
+                                                    
                                                 
                                             </svg>
                                              
@@ -746,7 +1132,13 @@ export class CustomOutline extends React.Component{
                                     <div className="marginTop25" ref="pointsList">
                                         <div className="col-md-12">
                                             <h5 className="mb-3 text-center">
-                                                <span className="text-muted">Connections &nbsp;</span>
+                                                <span>Connections &nbsp;
+                                                    <small className="text-muted">(
+                                                        Controller <span className="blue dot">&#9679;</span> &rArr; 
+                                                        Button <span className="orange dot">&#9679;</span>
+                                                        )</small> 
+                                                </span>
+                                                &nbsp;
                                                 {( this.state.pins.length > 0 ) ? 
                                                     <button 
                                                         type="button" 
@@ -758,18 +1150,21 @@ export class CustomOutline extends React.Component{
                                                 }
                                             </h5>
                                             <div className="conn-collection">
-                                                {Object.keys(this.state.pins).map(index => ( 
+                                                {Object.keys(this.state.buttons).map(index => ( 
                                                     <React.Fragment key={`point${index}`}>
                                                         <div className="connection">
                                                             <small>
                                                                 <span className="delete-x" onClick={() => this.handleDeleteButton(index)} title={`DELETE ${this.state.buttons[index].label}`}> X </span> &nbsp;
                                                                 [{index}] &nbsp;
                                                                     <strong>{this.state.buttons[index].label}: </strong>
-                                                                        <span className="orange dot">&#9679;</span> 
-                                                                        <span className="orange dot">( {this.state.buttons[index].x.toFixed(1)} | {this.state.buttons[index].y.toFixed(1)} )</span> 
-                                                                    &nbsp; &rArr; &nbsp;
                                                                         <span className="blue dot">&#9679;</span> 
-                                                                        <span className="blue dot">( {this.state.pins[index].x.toFixed(1)} | {this.state.pins[index].y.toFixed(1)} )</span>
+                                                                        <span className="blue dot">( {this.state.pins[index].vectorX.toFixed(1)} | {this.state.pins[index].vectorY.toFixed(1)} )</span>
+                                                                    &nbsp; &rArr; &nbsp;
+                                                                        <span className="orange dot">&#9679;</span> 
+                                                                        <span className="orange dot">( {this.state.buttons[index].vectorX.toFixed(1)} | {this.state.buttons[index].vectorY.toFixed(1)} )</span> 
+
+
+                                                                        
                                                                 
                                                             </small>
                                                         </div>
