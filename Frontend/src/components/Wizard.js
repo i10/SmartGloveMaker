@@ -2,6 +2,7 @@ import React from 'react';
 import {Home} from './Home';
 import {Designer} from './EagleDesigner'; 
 import {Directions} from './Directions'; 
+import {CustomOutline} from './CustomOutline'; 
 import {DeviceConnection} from './DeviceConnection'; 
 
 export class Wizard extends React.Component{
