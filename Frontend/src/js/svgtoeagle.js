@@ -227,11 +227,11 @@ export const drawSVG = ()=> {
   DRAWSCALE = drawMultiplier / SCALE;
 
   if (EAGLE_FORMAT === "board") {
-    out("CHANGE layer "+EAGLE_LAYER+"; CHANGE rank 3; CHANGE pour solid; SET WIRE_BEND 2;\n");
+    out("EDIT .BRD; CHANGE layer "+EAGLE_LAYER+"; CHANGE rank 3; CHANGE pour solid; SET WIRE_BEND 2;\n");
   } if (EAGLE_FORMAT === "library") {
-    out("CHANGE layer "+EAGLE_LAYER+"; CHANGE pour solid; Grid mm; SET WIRE_BEND 2;\n");
+    out("EDIT .BRD; CHANGE layer "+EAGLE_LAYER+"; CHANGE pour solid; Grid mm; SET WIRE_BEND 2;\n");
   } if (EAGLE_FORMAT === "wire") {
-    out("CHANGE layer "+EAGLE_LAYER+"; CHANGE pour solid; SET WIRE_BEND 2; GRID mm; ")
+    out("EDIT .BRD; CHANGE layer "+EAGLE_LAYER+"; CHANGE pour solid; SET WIRE_BEND 2; GRID mm; ")
   }
 
   ctx.beginPath();
