@@ -421,13 +421,13 @@ export class CustomOutline extends React.Component{
                     vectorX:this.state.absoluteX,
                     vectorY:this.state.absoluteY
                 }]);
-                
+
                 this.setState({
                     buttons: newButtons,
-                    pointIndex: pinID + 1
-                });
-                this.setState({toggleNextState: enums.svgClickStates.pin});
-                //this.handleConvertCoordsButton();
+                    pointIndex: pinID + 1,
+                    toggleNextState: enums.svgClickStates.pin
+                }, this.handleConvertCoordsButton); // callback after setState completes
+
                 break;
             
             // ADD A CONTROLLER PIN
@@ -1323,6 +1323,15 @@ export class CustomOutline extends React.Component{
                                         <div id="log" className="alert alert-warning" style={{display: "none"}} role="alert">
                                         </div>
 
+                                        <div class="row">
+                                            <div className="col-md-12 order-md-1 mb-4 pad-20">
+                                                <button 
+                                                    className="btn btn-primary btn-lg btn-block" 
+                                                    onClick={this.handleConvertClick} >
+                                                        1. Convert SVG to EAGLE
+                                                    </button>
+                                            </div>
+                                        </div>
                                         
 
                                         
@@ -1361,7 +1370,8 @@ export class CustomOutline extends React.Component{
                                 </div>
                                 
                             </div>
-
+                            
+                                {/*
                             <div className="row md-3">
                                 <div className="col-md-8 order-md-2 mb-4 pad-20">
                                     <button 
@@ -1371,14 +1381,9 @@ export class CustomOutline extends React.Component{
                                         </button>
                                 </div>
 
-                                <div className="col-md-4 order-md-1 mb-4 pad-20">
-                                    <button 
-                                        className="btn btn-primary btn-lg btn-block" 
-                                        onClick={this.handleConvertClick} >
-                                            1. Convert SVG to EAGLE
-                                        </button>
-                                </div>
+                                
                             </div>          
+                                */}
                         </div>
 
                         {/* WHITE OUTSIDE FRAME */}
@@ -1393,7 +1398,7 @@ export class CustomOutline extends React.Component{
                                     id="dwn-btn" 
                                     onClick={() => this.handleDownloadConvertedClick()} 
                                     >
-                                    3. Download eagle script
+                                    2. Download eagle script
                                 </button>
                             </div>
                             
