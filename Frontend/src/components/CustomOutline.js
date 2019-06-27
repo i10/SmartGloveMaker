@@ -8,6 +8,8 @@ import '../js/svgtoeagle.js';
 
 import {download_script,convert} from '../js/svgtoeagle.js'
 
+const controllerDim = {width: 45, height: 45}
+
 const patternPixelDimension = {width: 1155.3, height:801.6}
 
 const enums = { 
@@ -712,6 +714,17 @@ export class CustomOutline extends React.Component{
         this.setState({convCoords: outputStr});
     }
 
+    // assume inCoord is scaled to width = 100, height = 100
+    // inCoord = 50, controllerDimension = 200
+    // => return 100
+    // inCoord = 50, controllerDimension = 50
+    // => return 25
+    convControllerCoords(inCoord, controllerDimension)
+    {
+        let inCoordPercent = inCoord / 100;
+        return controllerDimension * inCoordPercent;
+    }
+
     render() {  
         const { absoluteX, absoluteY, dimensionX, dimensionY } = this.state;
 
@@ -801,11 +814,14 @@ export class CustomOutline extends React.Component{
                                                         />
 */}
 
-                                                    <g width="100" height="100" className="draggable-group" ref="pinGroup">
-                                                        <image xlinkHref={require('../img/lilypad.svg')} width="100" height="100" />
+                                                    <g width={controllerDim.width} height={controllerDim.height} className="draggable-group" ref="pinGroup">
+                                                        <image 
+                                                            xlinkHref={require('../img/lilypad.svg')} 
+                                                            width={controllerDim.width} 
+                                                            height={controllerDim.height} />
                                                         <circle 
-                                                            cx="7"
-                                                            cy="44"
+                                                            cx={this.convControllerCoords(7,controllerDim.width)}
+                                                            cy={this.convControllerCoords(44,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="GND"
                                                             data-pin-id="0"
@@ -813,8 +829,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_GND</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="7"
-                                                            cy="56"
+                                                            cx={this.convControllerCoords(7,controllerDim.width)}
+                                                            cy={this.convControllerCoords(56,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="VOL"
                                                             data-pin-id="1"
@@ -822,8 +838,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_VOL</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="50"
-                                                            cy="7"
+                                                            cx={this.convControllerCoords(50,controllerDim.width)}
+                                                            cy={this.convControllerCoords(7,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="RX"
                                                             data-pin-id="2"
@@ -831,8 +847,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_RX</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="38"
-                                                            cy="9"
+                                                            cx={this.convControllerCoords(38,controllerDim.width)}
+                                                            cy={this.convControllerCoords(9,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="TX"
                                                             data-pin-id="3"
@@ -840,8 +856,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_TX</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="27"
-                                                            cy="14"
+                                                            cx={this.convControllerCoords(27,controllerDim.width)}
+                                                            cy={this.convControllerCoords(14,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="2"
                                                             data-pin-id="10"
@@ -849,8 +865,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_2</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="17"
-                                                            cy="22"
+                                                            cx={this.convControllerCoords(17,controllerDim.width)}
+                                                            cy={this.convControllerCoords(22,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="3"
                                                             data-pin-id="11"
@@ -858,8 +874,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_3</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="11"
-                                                            cy="32"
+                                                            cx={this.convControllerCoords(11,controllerDim.width)}
+                                                            cy={this.convControllerCoords(32,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="4"
                                                             data-pin-id="12"
@@ -867,8 +883,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_4</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="11"
-                                                            cy="68"
+                                                            cx={this.convControllerCoords(11,controllerDim.width)}
+                                                            cy={this.convControllerCoords(68,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="5"
                                                             data-pin-id="13"
@@ -876,8 +892,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_5</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="17"
-                                                            cy="78"
+                                                            cx={this.convControllerCoords(17,controllerDim.width)}
+                                                            cy={this.convControllerCoords(78,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="6"
                                                             data-pin-id="14"
@@ -885,8 +901,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_6</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="27"
-                                                            cy="86"
+                                                            cx={this.convControllerCoords(27,controllerDim.width)}
+                                                            cy={this.convControllerCoords(86,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="7"
                                                             data-pin-id="15"
@@ -894,8 +910,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_7</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="38"
-                                                            cy="92"
+                                                            cx={this.convControllerCoords(38,controllerDim.width)}
+                                                            cy={this.convControllerCoords(92,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="8"
                                                             data-pin-id="16"
@@ -903,8 +919,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_8</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="50"
-                                                            cy="93"
+                                                            cx={this.convControllerCoords(50,controllerDim.width)}
+                                                            cy={this.convControllerCoords(93,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="9"
                                                             data-pin-id="17"
@@ -912,8 +928,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_9</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="62"
-                                                            cy="91"
+                                                            cx={this.convControllerCoords(62,controllerDim.width)}
+                                                            cy={this.convControllerCoords(91,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="10"
                                                             data-pin-id="18"
@@ -921,8 +937,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_10</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="74"
-                                                            cy="86"
+                                                            cx={this.convControllerCoords(74,controllerDim.width)}
+                                                            cy={this.convControllerCoords(86,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="11"
                                                             data-pin-id="19"
@@ -930,8 +946,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_11</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="83"
-                                                            cy="78"
+                                                            cx={this.convControllerCoords(83,controllerDim.width)}
+                                                            cy={this.convControllerCoords(78,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="12"
                                                             data-pin-id="20"
@@ -939,8 +955,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_12</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="89"
-                                                            cy="68"
+                                                            cx={this.convControllerCoords(89,controllerDim.width)}
+                                                            cy={this.convControllerCoords(68,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="13"
                                                             data-pin-id="21"
@@ -948,8 +964,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_13</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="93"
-                                                            cy="56"
+                                                            cx={this.convControllerCoords(93,controllerDim.width)}
+                                                            cy={this.convControllerCoords(56,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A0"
                                                             data-pin-id="4"
@@ -957,8 +973,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_A0</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="93"
-                                                            cy="44"
+                                                            cx={this.convControllerCoords(93,controllerDim.width)}
+                                                            cy={this.convControllerCoords(44,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A1"
                                                             data-pin-id="5"
@@ -966,8 +982,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_A1</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="90"
-                                                            cy="32"
+                                                            cx={this.convControllerCoords(90,controllerDim.width)}
+                                                            cy={this.convControllerCoords(32,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A2"
                                                             data-pin-id="6"
@@ -975,8 +991,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_A2</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="83"
-                                                            cy="22"
+                                                            cx={this.convControllerCoords(83,controllerDim.width)}
+                                                            cy={this.convControllerCoords(22,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A3"
                                                             data-pin-id="7"
@@ -984,8 +1000,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_A3</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="74"
-                                                            cy="14"
+                                                            cx={this.convControllerCoords(74,controllerDim.width)}
+                                                            cy={this.convControllerCoords(14,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A4"
                                                             data-pin-id="8"
@@ -993,8 +1009,8 @@ export class CustomOutline extends React.Component{
                                                             <title>PIN_A4</title>
                                                         </circle>
                                                         <circle 
-                                                            cx="62"
-                                                            cy="9"
+                                                            cx={this.convControllerCoords(62,controllerDim.width)}
+                                                            cy={this.convControllerCoords(9,controllerDim.height)}
                                                             className="lily-pin"
                                                             data-pin="A5"
                                                             data-pin-id="9"
