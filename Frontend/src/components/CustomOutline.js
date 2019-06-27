@@ -178,7 +178,7 @@ export class CustomOutline extends React.Component{
     // https://stackoverflow.com/a/1179377/665159
     strcmp_filter( str1, str2 )
     {
-        return this.strcmp( str1, str2 ) == 0;
+        return this.strcmp( str1, str2 ) === 0;
     }
     strcmp ( str1, str2 ) {
         // http://kevin.vanzonneveld.net
@@ -191,7 +191,7 @@ export class CustomOutline extends React.Component{
         // *     example 2: strcmp( 'owald', 'waldo' );
         // *     returns 2: -1
     
-        return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
+        return ( ( str1 === str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
     }
 
     /* BACK BUTTON */
@@ -293,13 +293,13 @@ export class CustomOutline extends React.Component{
         
         // clicking on canvas or one of the pin buttons
         if (
-            this.state.toggleNextState == enums.svgClickStates.button ||
+            this.state.toggleNextState === enums.svgClickStates.button ||
             evt.target.classList.contains('lily-pin')
         ) 
         {
             // clicked pin, get pin ID
             var pinID = (evt.target.getAttribute('data-pin-id') === null ) ? -1 : evt.target.getAttribute('data-pin-id');
-            if ( pinID != -1 )
+            if ( pinID !== -1 )
             {
                 //this.state.pointIndex = +pinID;
                 this.setState({pointIndex: +pinID});
@@ -634,11 +634,11 @@ export class CustomOutline extends React.Component{
     // convert all coordinates
     handleConvertCoordsButton() {
         const NL = "\n";
-        const editSchematic = "EDIT .SCH;" + "\n"; // switch to schematic view
-        const editBoard = "EDIT .BRD;" + "\n"; // switch to board view
-        const changeLayerTop = "CHANGE LAYER 1;" + "\n";
-        const gridMM = "GRID MM;" + "\n";
-        const setWireWidth = "SET NET_WIRE_WIDTH 0.1;" + "\n";
+        const editSchematic = "EDIT .SCH; \n"; // switch to schematic view
+        const editBoard = "EDIT .BRD; \n"; // switch to board view
+        const changeLayerTop = "CHANGE LAYER 1; \n";
+        const gridMM = "GRID MM; \n";
+        const setWireWidth = "SET NET_WIRE_WIDTH 0.1; \n";
 
         /*
             const setWireBend = "SET WIRE_BEND 2;" + "\n";
@@ -1414,7 +1414,7 @@ export class CustomOutline extends React.Component{
                                         <div id="log" className="alert alert-warning" style={{display: "none"}} role="alert">
                                         </div>
 
-                                        <div class="row">
+                                        <div className="row">
                                             <div className="col-md-12 order-md-1 mb-4 pad-20">
                                                 <button 
                                                     className="btn btn-primary btn-lg btn-block" 
