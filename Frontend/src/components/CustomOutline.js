@@ -57,6 +57,7 @@ export class CustomOutline extends React.Component{
             warning:"",
             step:5,
             isSVGLoaded: false,
+            helpModalShown: false,
             svgWidth: patternPixelDimension.x,
             svgHeight: patternPixelDimension.y,
 
@@ -97,6 +98,8 @@ export class CustomOutline extends React.Component{
         this.handleSVGDown = this.handleSVGDown.bind(this);
         this.handleSVGUp = this.handleSVGUp.bind(this);
         this.escFunction = this.escFunction.bind(this);
+
+        this.handleHelpButton = this.handleHelpButton.bind(this);
 
         // convert to eagle
         this.handleConvertClick = this.handleConvertClick.bind(this);
@@ -725,6 +728,26 @@ export class CustomOutline extends React.Component{
         return controllerDimension * inCoordPercent;
     }
 
+    handleHelpButton()
+    {
+        var showModal = this.state.helpModalShown;
+        if ( showModal === true )
+        {
+            showModal = false;
+        }
+        else
+        {
+            showModal = true;
+        }
+        this.setState({
+            helpModalShown: showModal
+        });
+
+        document.body.classList.toggle("modal-open");
+        document.getElementById("modalBackdrop").classList.toggle("show");
+        document.getElementById("modalBackdrop").classList.toggle("display-none")
+    }
+
     render() {  
         const { absoluteX, absoluteY, dimensionX, dimensionY } = this.state;
 
@@ -1192,10 +1215,78 @@ export class CustomOutline extends React.Component{
                                     
                                 </div>
 
+                                
+                                {/* HELP MODAL */}                            
+                                <div className={ (this.state.helpModalShown === true) ? ("modal fade show display-block") : ("modal fade display-none")} id="exampleModal" role="dialog" aria-labelledby="exampleModalLabel">
+                                    <div className="modal-dialog" role="document">
+                                        <div className="modal-content">
+                                            <div className="modal-header">
+                                                <h5 className="modal-title" id="exampleModalLabel">
+                                                    How to prepare SVG with the right options
+                                                    <a href="https://github.com/gfwilliams/svgtoeagle">[REF]</a>
+                                                    <sup>*)</sup>
+                                                </h5>
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-light" 
+                                                    onClick={() => this.handleHelpButton()} 
+                                                    aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+
+                                            <div className="modal-body help-modal">
+                                                <ul className="navbar-text">
+                                                    <li>In Inkscape</li>
+                                                    <ul className="navbar-text">
+                                                        <li>File -&gt; Document Properties -&gt; Set correct document size in millimeters</li>
+                                                        <li>Select all -&gt; Ungroup</li>
+                                                        <li>Path -&gt; Object to path</li>
+                                                        <li>Path -&gt; Break apart</li>
+                                                        <li>Set a fill *or* a stroke set for every shape you want - items without a fill or a stroke won't be rendered</li>
+                                                    </ul>
+                                                    <li>Enter the layer to use in Eagle</li>
+                                                    <li>Choose whether to flip the image horizontally or not</li>
+                                                    <li>Click the 'Choose File' box below and upload your SVG</li>
+                                                    <li>Place controller with pins and buttons</li>
+                                                    <li>Copy contents of Textarea and Paste into Eagle CAD's command box</li>
+                                                    <li><strong>OR:</strong> Download script and execute it via Eagle</li>
+                                                </ul>
+
+                                                <span>Normally copy/paste works fine, however for complex SVGs the commands become
+                                                too big to paste into Eagle's command box. You'll need to click 'Download Eagle Script' 
+                                                and then load that script in Eagle CAD.</span>
+                                                <hr />
+                                                <span><strong>Note:</strong> Filled polys with holes will show up in the preview as completely
+                                                filled - but in Eagle the holes are kept.</span>
+                                                <hr />
+                                                <span><strong>Note:</strong> This tool assumes that 0,0 (the crosshair) is in the bottom left
+                                                of your board in Eagle (which matches SVGs). If it isn't then the positioning of your graphics
+                                                may be wrong.</span>
+                                                <br />
+
+                                                    <span className="text-muted">
+                                                        <sup>*)</sup> <a href="https://github.com/gfwilliams/svgtoeagle">SVG to EAGLE by Gordon Williams</a>
+                                                    </span>
+
+                                                </div>
+
+                                            <div className="modal-footer">
+                                                <button type="button" className="btn btn-secondary" onClick={() => this.handleHelpButton()}>Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
                                 {/*  CONFIG  */}      
                                 <div className="col-md-4 order-md-1">
                                         <h4 className="mb-3 text-center">
                                             <span className="text-muted">Config</span>
+                                            &nbsp; 
+                                            <button type="button" className="btn btn-info btn-sm" onClick={() => this.handleHelpButton()} >
+                                                How to use?
+                                            </button>
                                         </h4>
 
                                         <div className="input-group mb-3">
