@@ -1,4 +1,4 @@
-# SmartGloveMaker (main branch)
+# SmartGloveMaker (master branch)
 
 ------------
 
