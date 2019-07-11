@@ -2,7 +2,7 @@
 
 ------------
 
-Contributers: Nur Hamdan and **Michal Piotr Slupczynski**
+Contributers: Nur Hamdan and **David Garcia Olivares**
 
 RWTH Aachen University, Germany
 
